@@ -8,14 +8,14 @@ const redisClient = redis.createClient(
     15228,
     "redis-15228.c264.ap-south-1-1.ec2.cloud.redislabs.com",
     { no_ready_check: true }
-  );
-  redisClient.auth("ZmbyDpNOfkuxm128M238YptOt37UDyVV", function (err) {
+);
+redisClient.auth("ZmbyDpNOfkuxm128M238YptOt37UDyVV", function (err) {
     if (err) throw err;
-  });
-  
-  redisClient.on("connect", async function () {
+});
+
+redisClient.on("connect", async function () {
     console.log("Connected to Redis..");
-  });
+});
 
 //1. connect to the server
 //2. use the commands :
@@ -50,49 +50,49 @@ const createshorturl = async function (req, res) {
         }
 
         //check url if valid {
-            const regex =  (/^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?$/i)
+        const regex = (/^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?$/i)
         if (!regex.test(longUrl)) {
             res.status(400).send({ status: false, msg: "the url is invalid, Please give correct url" })
-        } else{
-        let cahcedUrlData = await GET_ASYNC(`${longUrl}`)
-        if (cahcedUrlData){
-            console.log("Data stored from caches")
-        res.status(200).send({status :true , data:json.parse(cahcedUrlData)}) 
-        // check Duplicate url
         } else {
-        const duplicateUrl = await urlModel.findOne({ longUrl }).select({ _id: 0, updatedAt: 0, createdAt: 0, _v: 0 })
-        if (duplicateUrl) {
-            res.status(200).send({ msg: "the url is already shortened before", data: duplicateUrl })
+            let cahcedUrlData = await GET_ASYNC(`${longUrl}`)
+            if (cahcedUrlData) {
+                console.log("Data stored from caches")
+                res.status(200).send({ status: true, data: json.parse(cahcedUrlData) })
+                // check Duplicate url
+            } else {
+                const duplicateUrl = await urlModel.findOne({ longUrl }).select({ _id: 0, updatedAt: 0, createdAt: 0, _v: 0 })
+                if (duplicateUrl) {
+                    res.status(200).send({ msg: "the url is already shortened before", data: duplicateUrl })
+                }
+                else {
+                    // The API base Url endpoint
+                    const baseUrl = 'http://localhost:3000'
+                    // if valid, we create the url code
+                    const length = 6
+                    let urlCode = '';
+                    const characters = 'abcdefghijklmnopqrstuvwxyz';
+                    const charactersLength = characters.length;
+                    for (let i = 0; i < length; i++) {
+                        urlCode += characters.charAt(Math.floor(Math.random() * charactersLength));
+                    }
+                    // join the generated short code to the base url
+                    const shortUrl = baseUrl + '/' + urlCode
+                    // invoking the Url model and saving to the DB
+                    let url = {
+                        longUrl,
+                        shortUrl,
+                        urlCode
+                    }
+                    const saveurl = await urlModel.create(url)
+                    await SET_ASYNC(`${url}`, JSON.stringify(saveurl), "EX", 20) // to set in cache memory
+                    console.log("Data stored from DB")
+                    res.status(201).send({ status: true, data: saveurl })
+                }
+            }
         }
-        else {
-            // The API base Url endpoint
-            const baseUrl = 'http://localhost:3000'
-            // if valid, we create the url code
-            const length = 6
-            let urlCode = '';
-            const characters = 'abcdefghijklmnopqrstuvwxyz';
-            const charactersLength = characters.length;
-            for (let i = 0; i < length; i++) {
-                urlCode += characters.charAt(Math.floor(Math.random() * charactersLength));
-            }
-            // join the generated short code to the base url
-            const shortUrl = baseUrl + '/' + urlCode
-            // invoking the Url model and saving to the DB
-            let url = {
-                longUrl,
-                shortUrl,
-                urlCode
-            }
-            const saveurl = await urlModel.create(url)
-            await SET_ASYNC(`${url}`, JSON.stringify(saveurl)) // to set in cache memory
-            console.log("Data stored from DB")
-            res.status(201).send({ status: true, data: saveurl })
-         }
-       }
     }
-}
     // exception handler
-    catch (err){
+    catch (err) {
         res.status(500).send({ status: false, message: err.message });
     }
 }
@@ -100,27 +100,27 @@ const createshorturl = async function (req, res) {
 const getredirecturl = async function (req, res) {
     try {
         const urlCodeFromPath = req.params.urlCode
-        if(!isValid(urlCodeFromPath)){
-            res.status(400).send({status:false, msg: "Please provide correct urlCode"})
-        } else{
-        let cachedData = await GET_ASYNC(`${urlCodeFromPath}`) 
-        if (cachedData){
-            console.log("stored data pulled from cache")
-         res.status(302).redirect(JSON.parse(cachedData))
+        if (!isValid(urlCodeFromPath)) {
+            res.status(400).send({ status: false, msg: "Please provide correct urlCode" })
         } else {
-            const urlFound = await urlModel.findOne({ urlCode:urlCodeFromPath})
-        if (urlFound) {
-            console.log("stored data pulled from DB")
-            await SET_ASYNC(`${urlCodeFromPath}`, JSON.stringify(urlFound.longUrl)) // to set in cache memory
-         res.status(302).redirect(urlFound.longUrl)
-          }
-        else {
-            return res.status(404).send("no url found")
+            let cachedData = await GET_ASYNC(`${urlCodeFromPath}`)
+            if (cachedData) {
+                console.log("stored data pulled from cache")
+                res.status(302).redirect(JSON.parse(cachedData))
+            } else {
+                const urlFound = await urlModel.findOne({ urlCode: urlCodeFromPath })
+                if (urlFound) {
+                    console.log("stored data pulled from DB")
+                    await SET_ASYNC(`${urlCodeFromPath}`, JSON.stringify(urlFound.longUrl), "EX", 30) // to set in cache memory
+                    res.status(302).redirect(urlFound.longUrl)
+                }
+                else {
+                    return res.status(404).send("no url found")
+                }
+            }
         }
-    } 
-   }
-}
-catch (error) {
+    }
+    catch (error) {
         res.status(500).send({ status: false, message: error.message });
     }
 };
